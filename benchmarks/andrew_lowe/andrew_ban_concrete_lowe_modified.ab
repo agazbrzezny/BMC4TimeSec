@@ -1,0 +1,20 @@
+// Lowe-modified BAN-concrete Andrew Secure RPC (timed-ready)
+//
+// Motivation (Lowe mod): prevent the classic type-flaw where msg2 is replayed as msg4,
+// by making msg2 structurally distinguishable via including B inside the encrypted payload.
+//
+// We keep successor checks (as in the standard Andrew Secure RPC):
+// 1. A -> B : A, {Ta}Kab
+// 2. B -> A : {succTa, Tb, B}Kab      // Lowe modification: add B inside the ciphertext
+// 3. A -> B : {succTb}Kab
+// 4. B -> A : {KabP, NbP}Kab          // key-transport / future handshake nonce
+//
+// Notes:
+// - Kab is the long-term symmetric key shared by A and B.
+// - KabP is a fresh session key; NbP is a fresh nonce/ticket (often written N'b).
+// - Timed option: treat Ta/Tb/NbP as tickets with lifetimes LF(Ta), LF(Tb), LF(NbP).
+
+1. A -> B : A, {Ta}Kab
+2. B -> A : {succTa, Tb, B}Kab
+3. A -> B : {succTb}Kab
+4. B -> A : {KabP, NbP}Kab

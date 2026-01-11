@@ -1,0 +1,18 @@
+// imed version of Woo and Lam Pi 1 Protocol (WLPi1-imed, timed-ready)
+//
+// 1. A -> B : A
+// 2. B -> A : Tb
+// 3. A -> B : {A, B, Tb}KAS
+// 4. B -> S : {A, B, {A, B, Tb}KAS}KBS
+// 5. S -> B : {A, B, Tb}KBS
+//
+// Notes:
+// - KAS is the long-term key between A and S.
+// - KBS is the long-term key between B and S.
+// - Tb is B's nonce/ticket; in timed model you can attach lifetime LF(Tb).
+
+1. A -> B : A
+2. B -> A : Tb
+3. A -> B : {A, B, Tb}KAS
+4. B -> S : {A, B, {A, B, Tb}KAS}KBS
+5. S -> B : {A, B, Tb}KBS

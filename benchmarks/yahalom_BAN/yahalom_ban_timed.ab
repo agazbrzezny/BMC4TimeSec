@@ -1,0 +1,14 @@
+// Timed version of BAN simplified version of Yahalom Protocol (BAN-Yahalom, timed-ready)
+// Normalized keys: KAB, KAS, KBS
+//
+// 1. A -> B : A, Ta
+// 2. B -> S : B, Tb, {A, Ta}KBS
+// 3. S -> A : Tb, {B, KAB, Ta}KAS, {A, KAB, Tb}KBS
+// 4. A -> B : {A, KAB, Tb}KBS, {Tb}KAB
+//
+// Timed option: treat Ta/Tb as tickets with lifetimes LF(Ta), LF(Tb).
+
+1. A -> B : A, Ta
+2. B -> S : B, Tb, {A, Ta}KBS
+3. S -> A : Tb, {B, KAB, Ta}KAS, {A, KAB, Tb}KBS
+4. A -> B : {A, KAB, Tb}KBS, {Tb}KAB

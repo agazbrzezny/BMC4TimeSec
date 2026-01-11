@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>BMC4TimeSec: AB → PROTOC → TIS/TIIS (Timed (Interleaved) Interpreted System) → EF formulas → SMT-BMC → Counterexample</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">BMC4TimeSec</div>
+    <div class="hint">AB → PROTOC → TIS/TIIS (Timed (Interleaved) Interpreted System) → EF formulas → SMT-BMC → Counterexample</div>
+  </div>
+
+  <div class="main">
+    <div class="left">
+      <section class="card">
+        <h3>Run pipeline (.ab + interpretations.json)</h3>
+        <form action="/pipeline/start" method="post" enctype="multipart/form-data">
+          <div class="row">
+            <label>.ab</label>
+            <input type="file" name="ab" accept=".ab,text/plain" required>
+          </div>
+          <div class="row">
+            <label>interpretations .json</label>
+            <input type="file" name="json" accept=".json,application/json,text/plain" required>
+          </div>
+
+          <div class="row"><label>k (sessions)</label><input type="text" name="k" value="2"></div>
+          <div class="row"><label>delays</label><input type="text" name="delays" placeholder='1:2;2:3;...'></div>
+          <div class="row"><label>shared keys (metadata)</label><input type="text" name="shared_keys" placeholder='KAS:A,S;KBS:B,S;KBI:B,I'></div>
+          <div class="row"><label>ticket lifetimes</label><input type="text" name="ticket_lifetimes" placeholder='Ta:20;Tb:20'></div>
+          <div class="row"><label>session vars</label><input type="text" name="session_vars" placeholder='KAB;Na'></div>
+          <div class="row">
+            <label>output directory (optional)</label>
+            <input type="text" name="output_dir" placeholder="/path/to/out (default: job folder)">
+          </div>
+
+          <details>
+            <summary class="small muted">Optional filtering</summary>
+            <div class="row" style="margin-top:8px;">
+              <label>only runs</label>
+              <input type="text" name="only_runs" placeholder="honest,man1-foreignTb">
+            </div>
+          </details>
+
+          <button type="submit">Run</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h3>Recent experiments</h3>
+        <div class="pipeList">
+          {% for j in pipeline_jobs %}
+          {% set jid = j.id %}
+          {% set outs = j.outputs %}
+          <div class="pipeItem" data-job="{{ jid }}">
+            <div>
+              <b>{{ jid }}</b> · <span class="pill {{ j.status }}">{{ j.status }}</span>
+              · stage {{ j.stage_index }}/{{ j.stages_len }}
+            </div>
+
+            {% if j.error %}
+              <div class="small muted" style="margin-top:6px;">Error: {{ j.error }}</div>
+            {% endif %}
+
+            <div class="btnrow" style="margin-top:8px; flex-wrap:wrap;">
+              <button type="button" class="pipeLogBtn" data-job="{{ jid }}">Log</button>
+
+              {% if outs.get('protoc') %}
+                <button type="button" class="previewBtn" data-kind="protoc" data-job="{{ jid }}">View .protoc</button>
+                <a class="btnlink" href="/pipeline/download/{{ jid }}/protoc">Download .protoc</a>
+              {% endif %}
+
+              {% if outs.get('protoc') %}
+                <form action="/pipeline/gen_tis/{{ jid }}" method="post" style="display:inline;">
+                  <button type="submit" class="nextBtn">Generate TIS →</button>
+                </form>
+              {% endif %}
+{% if outs.get('tis') %}
+                <a class="btnlink" href="/tis/{{ jid }}">Show TIS</a>
+
+                <button type="button" class="previewBtn" data-kind="tis" data-job="{{ jid }}">View .tis</button>
+                <a class="btnlink" href="/pipeline/download/{{ jid }}/tis">Download .tis</a>
+              {% endif %}
+
+              {% if outs.get('nta') %}
+                <form action="/pipeline/gen_ef/{{ jid }}" method="post" style="display:inline;">
+                  <button type="submit">Generate formulas</button>
+                </form>
+              {% endif %}
+            </div>
+
+            <pre class="pipeLog" id="log-{{ jid }}" style="display:none;"></pre>
+            <pre class="previewBox" id="prev-protoc-{{ jid }}" style="display:none;"></pre>
+            <pre class="previewBox" id="prev-nta-{{ jid }}" style="display:none;"></pre>
+            <pre class="previewBox" id="prev-tis-{{ jid }}" style="display:none;"></pre>
+            <pre class="previewBox" id="prev-efo-{{ jid }}" style="display:none;"></pre>
+
+            {% if outs.get('efo') %}
+              <div class="small muted" style="margin-top:10px;">
+                Generated: <code>{{ outs.get('efo').split('/')[-1] }}</code>
+                <a class="btnlink" href="/pipeline/download/{{ jid }}/efo">Download .efo</a>
+                <button type="button" class="previewBtn" data-kind="efo" data-job="{{ jid }}">View .efo</button>
+              </div>
+
+              <div class="row" style="margin-top:8px;">
+                <label>Formula to test</label>
+                <select class="formulaSel" id="formSel-{{ jid }}" data-job="{{ jid }}"></select>
+              </div>
+              <div class="small muted" id="formDesc-{{ jid }}"></div>
+
+              <form action="/pipeline/select_ef/{{ jid }}" method="post" style="margin-top:8px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <input type="hidden" name="scenario" id="formChosen-{{ jid }}" value=""/>
+                <button type="submit">Set active formula</button>
+                {% if outs.get('selected_efo') %}
+                  <span class="small muted">Active: <code>{{ outs.get('selected_scenario','') }}</code> → <code>{{ outs.get('selected_efo').split('/')[-1] }}</code></span>
+                <div class="row-inline">
+                <a class="btnlink" href="/pipeline/download/{{ jid }}/selected_efo">Download active .efo</a>
+                  <select id="engineSel" class="engine-sel" aria-label="Solver">
+    <option value="tis" selected>SMT-BMC4TIS</option>
+    <option value="tiis">SMT-BMC4TIIS</option>
+  </select>
+</div>
+                {% endif %}
+              </form>
+            
+{% if outs.get('selected_efo') and outs.get('tis') %}
+<div class="row" style="margin-top:10px;">
+  <label>BMC k-path length (protocol steps)</label>
+  <input type="text" name="bmc_steps" form="bmcForm-{{ jid }}" value="10" />
+</div>
+<form id="bmcForm-{{ jid }}" action="/pipeline/run_bmc/{{ jid }}" method="post" style="margin-top:8px;">
+  <button type="submit">Run BMC</button>
+</form>
+{% endif %}
+
+{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <div class="right">
+      <div class="headerline">Witness preview</div>
+      <div class="witnessCard">
+        <div class="row" style="align-items:center;">
+          <label style="min-width:70px;">Experiment</label>
+          <select id="wJob" style="flex:1;">
+            <option value="">(select)</option>
+            {% for j in pipeline_jobs %}
+              <option value="{{ j.id }}">{{ j.id }}</option>
+            {% endfor %}
+          </select>
+          <span class="pill" id="wStatus">idle</span>
+        </div>
+
+        <div class="wControls">
+          <button type="button" id="wPrev">← Prev</button>
+          <button type="button" id="wNext">Next →</button>
+          <div class="small muted" id="wStepText">step —</div>
+        </div>
+
+        <div class="wMeta small muted" id="wMeta"></div>
+
+        <div class="wMode">
+          <label class="small"><input type="checkbox" id="wOnly" checked> Witness automata only</label>
+        </div>
+
+        <div class="wSplit">
+          <div class="wAutoList" id="wAutoList"></div>
+
+         <div class="wGraphWrap">
+  <div id="cyWitness" class="cy"></div>
+
+        </div>
+
+                          <div id="timingCard" class="timing-card below-witness" style="display:none;">
+  <div class="timing-head">
+    <div class="timing-title">Timings</div>
+    <div id="timingHint" class="timing-hint"></div>
+  </div>
+  <div id="timingBody" class="timing-body"></div>
+</div>
+        <div class="small muted" style="margin-top:8px;">Keyboard: ←/→</div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='cytoscape.min.js') }}"></script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

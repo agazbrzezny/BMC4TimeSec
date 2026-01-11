@@ -1,0 +1,11 @@
+// Needham–Schroeder Symmetric-Key Protocol (NSSK) — corrected + reflection-safe timed variant
+// Notes:
+// - Standard NSSK ends with A->B: {Tb-1}KAB. Our AB parser accepts only identifiers [A-Za-z_][A-Za-z0-9_#@]*,
+//   so we replace Tb-1 with a tagged response {Tb,OK}KAB to prevent reflection (step 5 differs from step 4).
+// - Treat Ta and Tb as tickets (optional): add lifetimes LF(Ta), LF(Tb) in your generator if you want timed checks.
+
+1. A -> S : A, B, Ta
+2. S -> A : {Ta, B, KAB, {KAB, A}KBS}KAS
+3. A -> B : {KAB, A}KBS
+4. B -> A : {Tb}KAB
+5. A -> B : {Tb, OK}KAB

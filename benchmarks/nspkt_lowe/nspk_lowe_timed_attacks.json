@@ -1,0 +1,264 @@
+{
+  "meta": {
+    "protocol": "NSPK_Lowe_Timed",
+    "aka": [
+      "Needham\u2013Schroeder Public-Key (Lowe modification)",
+      "NSPK-Lowe timed"
+    ],
+    "alice_bob_input_checked": {
+      "provided": [
+        "1. A->B: {Ta, A}Kb",
+        "2. B->A: {Ta, Tb, B}Ka",
+        "3. A->B: {Tb}Kb"
+      ],
+      "status": "OK (matches Lowe's fix: B is included in message 2; timed nonces Ta/Tb can be treated as tickets).",
+      "notes": [
+        "Keys Ka and Kb are public keys (PK(A), PK(B)). Anyone (including the intruder) can encrypt under them, but only A/B can decrypt using their private keys.",
+        "Timed variant: you may attach lifetimes LF(Ta), LF(Tb) and require freshness checks when A/B accept the decrypted values."
+      ]
+    },
+    "messages": [
+      "1. A->B: {Ta, A}Kb",
+      "2. B->A: {Ta, Tb, B}Ka",
+      "3. A->B: {Tb}Kb"
+    ],
+    "notation": {
+      "concat": "|",
+      "encrypt": "<K, ...>",
+      "examples": {
+        "{Ta,A}Kb": "<Kb,Ta|A>",
+        "{Ta,Tb,B}Ka": "<Ka,Ta|Tb|B>",
+        "{Tb}Kb": "<Kb,Tb>"
+      }
+    },
+    "hints": [
+      "If you model freshness, use --ticket-lifetimes Ta:<LF>;Tb:<LF>.",
+      "Public-key setting: do NOT assume the intruder can decrypt <Ka,...> or <Kb,...> unless you explicitly model private-key compromise.",
+      "Runs with tc_extra stale(Ta#k)/stale(Tb#k) require tc_extra support in the .protoc generator."
+    ]
+  },
+  "runs": [
+    {
+      "name": "honest",
+      "overrides": []
+    },
+    {
+      "name": "replay_step1_sid1_to_sid2",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "<Kb,Ta#1|A>"
+        },
+        {
+          "sid": 2,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<Kb,Ta#1|A>"
+        }
+      ]
+    },
+    {
+      "name": "replay_step1_stale_Ta_should_fail",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "<Kb,Ta#1|A>"
+        },
+        {
+          "sid": 2,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<Kb,Ta#1|A>",
+          "tc_extra": "stale(Ta#1)"
+        }
+      ]
+    },
+    {
+      "name": "mitm_capture_step3_A_to_B",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "<Kb,Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "inject_step2_wrong_B_identity_should_fail",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<Ka,Ta#1|Tb#1|I>"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<Kb,Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "impersonate_A_to_B_by_initiating_step1_should_fail",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<Kb,Ta#1|A>"
+        }
+      ]
+    },
+    {
+      "name": "replay_step2_sid1_to_sid2_requires_Ta_reuse",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "<Ka,Ta#1|Tb#1|B>"
+        },
+        {
+          "sid": 2,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<Kb,Ta#1|A>"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<Ka,Ta#1|Tb#1|B>"
+        },
+        {
+          "sid": 2,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<Kb,Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "replay_step2_stale_Tb_should_fail",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "<Ka,Ta#1|Tb#1|B>"
+        },
+        {
+          "sid": 2,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<Kb,Ta#1|A>"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<Ka,Ta#1|Tb#1|B>",
+          "tc_extra": "stale(Tb#1)"
+        },
+        {
+          "sid": 2,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<Kb,Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "compromise_SK_A_decrypt_step2_learn_Tb_then_impersonate_A_to_B",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "<Ka,Ta#1|Tb#1|B>"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<Kb,Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "typeflaw_Ta_is_A_in_step1",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<Kb,A|A>"
+        }
+      ]
+    },
+    {
+      "name": "typeflaw_Tb_is_B_in_step2",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->A",
+          "L": "<Ka,Ta#1|B|B>"
+        }
+      ]
+    },
+    {
+      "name": "all_intruder_steps_sid1",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<Kb,Ta#1|A>"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<Ka,Ta#1|Tb#1|B>"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<Kb,Tb#1>"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+// imed version of Lowe's modification of Yahalom Protocol (symmetric-key, timed-ready)
+//
+// Provided Alice–Bob (normalized key names):
+// 1. A -> B : A, Ta
+// 2. B -> S : B, {A, Ta, Tb}KBS
+// 3. S -> A : {B, KAB, Ta, Tb}KAS
+// 4. S -> B : {A, KAB}KBS
+// 5. A -> B : {A, B, S, Tb}KAB
+//
+// Notes:
+// - Ta and Tb are nonces; in the timed variant you can treat them as tickets with lifetimes LF(Ta), LF(Tb).
+// - Step 5 is the "Lowe-style" confirmation: it binds A,B,S and echoes Tb under KAB.
+
+1. A -> B : A, Ta
+2. B -> S : B, {A, Ta, Tb}KBS
+3. S -> A : {B, KAB, Ta, Tb}KAS
+4. S -> B : {A, KAB}KBS
+5. A -> B : {A, B, S, Tb}KAB

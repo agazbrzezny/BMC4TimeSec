@@ -1,0 +1,3 @@
+1. A -> S : A, B
+2. S -> A : {B, KAB, Ts, {KAB, A, Ts}KBS}KAS
+3. A -> B : {KAB, A, Ts}KBS

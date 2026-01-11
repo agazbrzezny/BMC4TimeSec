@@ -1,0 +1,22 @@
+// Timed-ready Lowe-modified Wide-Mouthed Frog Protocol (WMF-Lowe)
+//
+// Source (SPORE): "Lowe modified Wide Mouthed Frog" (1997).
+// Base WMF has 2 messages (A->S, S->B). Lowe adds a 2-message nonce handshake
+// for mutual authentication / key confirmation.
+//
+// Alice–Bob (normalized, successor check explicit):
+// 1. A -> S : A, {Ta, B, Kab}Kas
+// 2. S -> B : {Ts, A, Kab}Kbs
+// 3. B -> A : {Tb}Kab
+// 4. A -> B : {succTb}Kab
+//
+// Notes:
+// - Kas, Kbs are long-term keys shared with server S.
+// - Kab is the session key to be shared by A and B (chosen by A, relayed by S).
+// - Ta, Ts are timestamps/tickets; Tb is a fresh nonce/ticket from B.
+// - succTb is the successor token for Tb (e.g., Tb+1).
+
+1. A -> S : A, {Ta, B, Kab}Kas
+2. S -> B : {Ts, A, Kab}Kbs
+3. B -> A : {Tb}Kab
+4. A -> B : {succTb}Kab

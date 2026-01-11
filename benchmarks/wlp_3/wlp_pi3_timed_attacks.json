@@ -1,0 +1,320 @@
+{
+  "meta": {
+    "protocol": "WooLamPi3_Timed",
+    "aka": [
+      "Woo and Lam Pi 3 (timed)"
+    ],
+    "version": "5-step server-mediated auth; timed checks optional",
+    "alice_bob_input_checked": {
+      "provided": [
+        "1. A->B: A",
+        "2. B->A: Tb",
+        "3. A->B: {A, Tb}Kas",
+        "4. B->S: {A, {Tb}Kas}Kbs",
+        "5. S->B: {A, Tb}Kbs"
+      ],
+      "status": "OK (structure consistent for WLP Pi 3; normalize Kas/Kbs -> KAS/KBS).",
+      "notes": [
+        "Compared to WLP Pi 2, step 4 forwards only {Tb}KAS (wrapped with A under KBS).",
+        "B should accept step 5 only if decrypted (A,Tb) matches its current session and Tb.",
+        "Timed option: attach lifetime LF(Tb) and check it at B upon receiving step 5."
+      ]
+    },
+    "messages": [
+      "1. A->B: A",
+      "2. B->A: Tb",
+      "3. A->B: {A, Tb}KAS",
+      "4. B->S: {A, {Tb}KAS}KBS",
+      "5. S->B: {A, Tb}KBS"
+    ],
+    "notation": {
+      "concat": "|",
+      "encrypt": "<K, ...>",
+      "examples": {
+        "{A,Tb}KAS": "<KAS,A|Tb>",
+        "{Tb}KAS": "<KAS,Tb>",
+        "{A,{Tb}KAS}KBS": "<KBS,A|<KAS,Tb>>",
+        "{A,Tb}KBS": "<KBS,A|Tb>"
+      }
+    },
+    "hints": [
+      "Timed option: --ticket-lifetimes Tb:<LF> (optional).",
+      "Runs with tc_extra stale(Tb#k) require tc_extra support in the .protoc generator."
+    ]
+  },
+  "runs": [
+    {
+      "name": "honest",
+      "overrides": []
+    },
+    {
+      "name": "mitm1_intruder_impersonates_B_to_A_in_step2",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "TbI#1"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "<KAS,A|TbI#1>"
+        }
+      ]
+    },
+    {
+      "name": "replay_step3_sid1_to_sid2_requires_Tb_reuse",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "<KAS,A|Tb#1>"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->A",
+          "L": "Tb#1"
+        },
+        {
+          "sid": 2,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KAS,A|Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "replay_step3_ciphertext_with_mismatched_Tb_should_fail",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "<KAS,A|Tb#1>"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->A",
+          "L": "Tb#2"
+        },
+        {
+          "sid": 2,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KAS,A|Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "replay_step5_sid1_to_sid2_requires_Tb_reuse",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 5,
+          "kind": "replace",
+          "edge": "S->I",
+          "L": "<KBS,A|Tb#1>"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->A",
+          "L": "Tb#1"
+        },
+        {
+          "sid": 2,
+          "step": 5,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,A|Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "replay_step5_stale_Tb_should_fail",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 5,
+          "kind": "replace",
+          "edge": "S->I",
+          "L": "<KBS,A|Tb#1>"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->A",
+          "L": "Tb#1"
+        },
+        {
+          "sid": 2,
+          "step": 5,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,A|Tb#1>",
+          "tc_extra": "stale(Tb#1)"
+        }
+      ]
+    },
+    {
+      "name": "replay_step4_sid1_to_sid2_should_fail_without_matching_steps",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "<KBS,A|<KAS,Tb#1>>"
+        },
+        {
+          "sid": 2,
+          "step": 4,
+          "kind": "intruder",
+          "edge": "I->S",
+          "L": "<KBS,A|<KAS,Tb#1>>"
+        }
+      ]
+    },
+    {
+      "name": "mitm_capture_step5_S_to_B",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 5,
+          "kind": "replace",
+          "edge": "S->I",
+          "L": "<KBS,A|Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "inject_step5_wrong_A_identity_should_fail",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 5,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,I|Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "compromise_KAS_forge_step3_to_B",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KAS,A|Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "compromise_KBS_forge_step5_to_B",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 5,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,A|Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "mitm2_impersonate_A_to_B_requires_KAS_compromise",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "A"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "Tb#1"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KAS,A|Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "typeflaw_Tb_is_A_in_step2",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->A",
+          "L": "A"
+        }
+      ]
+    },
+    {
+      "name": "all_intruder_steps_sid1",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "A"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "Tb#1"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KAS,A|Tb#1>"
+        },
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "intruder",
+          "edge": "I->S",
+          "L": "<KBS,A|<KAS,Tb#1>>"
+        },
+        {
+          "sid": 1,
+          "step": 5,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,A|Tb#1>"
+        }
+      ]
+    }
+  ]
+}

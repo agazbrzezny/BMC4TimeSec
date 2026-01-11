@@ -1,0 +1,20 @@
+// Timed-ready Andrew Secure RPC Protocol (often called "Andrew protocol")
+// We normalize +1 / successor notation as succTa and succTb (matches common presentations).
+// We also replace primes (K'ab, N'b) with KabP, NbP for parser-friendliness.
+//
+// Informal spec (standard):
+// 1. A -> B : A, {Ta}Kab
+// 2. B -> A : {succTa, Tb}Kab
+// 3. A -> B : {succTb}Kab
+// 4. B -> A : {KabP, NbP}Kab
+//
+// Notes:
+// - Kab is the long-term symmetric key shared by A and B.
+// - KabP is a fresh session key distributed by B to A in message 4.
+// - NbP (often written N'b) is a nonce/handshake value to be used in a future session.
+// - Timed option: treat Ta/Tb/NbP as tickets with lifetimes (LF) if you want explicit time freshness checks.
+
+1. A -> B : A, {Ta}Kab
+2. B -> A : {succTa, Tb}Kab
+3. A -> B : {succTb}Kab
+4. B -> A : {KabP, NbP}Kab

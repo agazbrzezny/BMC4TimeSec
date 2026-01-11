@@ -1,0 +1,251 @@
+{
+  "meta": {
+    "protocol": "Wide_Mouthed_Frog_Lowe_Modified_Timed",
+    "aka": [
+      "WMF-Lowe",
+      "Lowe-modified Wide-Mouthed Frog (timed)"
+    ],
+    "alice_bob_input_checked": {
+      "provided_by_user": [
+        "1. A->S: A, {Ta, B, Kab}Kas",
+        "2. S->B: {Ts, A, Kab}Kbs",
+        "3. B->A: {Tb}Kab",
+        "4. A->B: {Tb}Kab  (user had same Tb again + wrong numbering)"
+      ],
+      "correction_applied": [
+        "Step numbering fixed (last line is step 4).",
+        "Step 4 changed to {succTb}Kab (successor check), as in SPORE’s Lowe-modified WMF."
+      ],
+      "final_used": [
+        "1. A->S: A, {Ta, B, Kab}Kas",
+        "2. S->B: {Ts, A, Kab}Kbs",
+        "3. B->A: {Tb}Kab",
+        "4. A->B: {succTb}Kab"
+      ]
+    },
+    "notation": {
+      "concat": "|",
+      "encrypt": "<K, ...>",
+      "examples": {
+        "{Ta,B,Kab}Kas": "<Kas,Ta|B|Kab>",
+        "{Ts,A,Kab}Kbs": "<Kbs,Ts|A|Kab>",
+        "{Tb}Kab": "<Kab,Tb>",
+        "{succTb}Kab": "<Kab,succTb>"
+      }
+    },
+    "timed_extension": {
+      "tickets": [
+        "Ta",
+        "Ts",
+        "Tb"
+      ],
+      "hint": "Optional: enforce lifetimes LF(Ta), LF(Ts), LF(Tb); use tc_extra: stale(X#i) in runs."
+    }
+  },
+  "runs": [
+    {
+      "name": "honest",
+      "overrides": []
+    },
+    {
+      "name": "replay_msg2_stale_Ts_should_fail",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "S->I",
+          "L": "<Kbs,Ts#1|A|Kab#1>"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<Kbs,Ts#1|A|Kab#1>",
+          "tc_extra": "stale(Ts#1)"
+        }
+      ]
+    },
+    {
+      "name": "replay_msg3_sid1_to_sid2_requires_Tb_reuse",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "<Kab,Tb#1>"
+        },
+        {
+          "sid": 2,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<Kab,Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "wrong_msg4_echo_Tb_instead_of_succ_should_fail",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "B->A",
+          "L": "<Kab,Tb#1>"
+        },
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<Kab,Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "mitm_capture_msg2_S_to_B",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "S->I",
+          "L": "<Kbs,Ts#1|A|Kab#1>"
+        }
+      ]
+    },
+    {
+      "name": "mitm_capture_msg4_A_to_B",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "<Kab,succTb#1>"
+        }
+      ]
+    },
+    {
+      "name": "compromise_Kas_forge_msg1_choose_attacker_key",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->S",
+          "L": "A|<Kas,Ta#1|B|KabI#1>"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "S->B",
+          "L": "<Kbs,Ts#1|A|KabI#1>"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "<KabI#1,Tb#1>"
+        },
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KabI#1,succTb#1>"
+        }
+      ]
+    },
+    {
+      "name": "compromise_Kbs_forge_msg2_choose_attacker_key",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<Kbs,Ts#1|A|KabI#1>"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "<KabI#1,Tb#1>"
+        },
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KabI#1,succTb#1>"
+        }
+      ]
+    },
+    {
+      "name": "stale_Ta_should_fail_in_msg1",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->S",
+          "L": "A|<Kas,Ta#1|B|Kab#1>",
+          "tc_extra": "stale(Ta#1)"
+        }
+      ]
+    },
+    {
+      "name": "stale_Tb_should_fail_in_msg3",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "B->A",
+          "L": "<Kab,Tb#1>",
+          "tc_extra": "stale(Tb#1)"
+        }
+      ]
+    },
+    {
+      "name": "all_intruder_steps_sid1",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->S",
+          "L": "A|<Kas,Ta#1|B|KabI#1>"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<Kbs,Ts#1|A|KabI#1>"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<KabI#1,Tb#1>"
+        },
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KabI#1,succTb#1>"
+        }
+      ]
+    }
+  ]
+}

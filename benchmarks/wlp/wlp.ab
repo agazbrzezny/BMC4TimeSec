@@ -1,0 +1,5 @@
+1. A -> B : A
+2. B -> A : Tb
+3. A -> B : {Tb}KAS
+4. B -> S : {A, {Tb}KAS}KBS
+5. S -> B : {Tb}KBS

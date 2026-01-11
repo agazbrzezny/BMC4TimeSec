@@ -1,0 +1,392 @@
+{
+  "runs": [
+    {
+      "name": "honest",
+      "overrides": []
+    },
+    {
+      "name": "mitm1_oracle_foreignTb2",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "A"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "Tb#2"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "<KAS,Tb#2>"
+        },
+        {
+          "sid": 2,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "A"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "Tb#2"
+        },
+        {
+          "sid": 2,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KAS,Tb#2>"
+        }
+      ]
+    },
+    {
+  "name": "mitm2_replay_ciphertext_from_sid1",
+  "overrides": [
+    { "sid": 1, "step": 3, "kind": "replace",  "edge": "A->I", "L": "<KAS,Tb#1>" },
+
+    { "sid": 2, "step": 1, "kind": "intruder", "edge": "I->B", "L": "A" },
+    { "sid": 2, "step": 2, "kind": "replace",  "edge": "B->I", "L": "Tb#2" },
+    { "sid": 2, "step": 3, "kind": "intruder", "edge": "I->B", "L": "<KAS,Tb#1>" },
+    { "sid": 2, "step": 4, "kind": "replace",  "edge": "B->S", "L": "<KBS,A|<KAS,Tb#1>>" },
+    { "sid": 2, "step": 5, "kind": "replace",  "edge": "S->B", "L": "<KBS,Tb#1>" }
+  ]
+},
+    {
+      "name": "replay_tb1_into_sid2",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "A"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "Tb#1"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "<KAS,Tb#1>"
+        },
+        {
+          "sid": 2,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "A"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "Tb#2"
+        },
+        {
+          "sid": 2,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KAS,Tb#1>"
+        },
+        {
+          "sid": 2,
+          "step": 4,
+          "kind": "replace",
+          "edge": "B->S",
+          "L": "<KBS,A|<KAS,Tb#1>>"
+        },
+        {
+          "sid": 2,
+          "step": 5,
+          "kind": "replace",
+          "edge": "S->B",
+          "L": "<KBS,Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "swap_tb1_tb2_between_sessions",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "Tb#2"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<KAS,Tb#2>"
+        },
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "replace",
+          "edge": "B->S",
+          "L": "<KBS,A|<KAS,Tb#2>>"
+        },
+        {
+          "sid": 1,
+          "step": 5,
+          "kind": "replace",
+          "edge": "S->B",
+          "L": "<KBS,Tb#2>"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "Tb#1"
+        },
+        {
+          "sid": 2,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<KAS,Tb#1>"
+        },
+        {
+          "sid": 2,
+          "step": 4,
+          "kind": "replace",
+          "edge": "B->S",
+          "L": "<KBS,A|<KAS,Tb#1>>"
+        },
+        {
+          "sid": 2,
+          "step": 5,
+          "kind": "replace",
+          "edge": "S->B",
+          "L": "<KBS,Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "impersonate_A_and_fake_S_response",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "A"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "Tb#1"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KAS,Tb#1>"
+        },
+        {
+          "sid": 1,
+          "step": 5,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "typeflaw_tb_is_A",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->A",
+          "L": "A"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<KAS,A>"
+        },
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "replace",
+          "edge": "B->S",
+          "L": "<KBS,A|<KAS,A>>"
+        },
+        {
+          "sid": 1,
+          "step": 5,
+          "kind": "replace",
+          "edge": "S->B",
+          "L": "<KBS,A>"
+        }
+      ]
+    },
+    {
+      "name": "typeflaw_tb_is_B",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->A",
+          "L": "B"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<KAS,B>"
+        },
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "replace",
+          "edge": "B->S",
+          "L": "<KBS,A|<KAS,B>>"
+        },
+        {
+          "sid": 1,
+          "step": 5,
+          "kind": "replace",
+          "edge": "S->B",
+          "L": "<KBS,B>"
+        }
+      ]
+    },
+    {
+      "name": "mismatch_S_to_I",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "<KBI,A|<KAS,Tb#1>>"
+        },
+        {
+          "sid": 1,
+          "step": 5,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBI,Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "foreign_ciphertext_in_sid1",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "Tb#2"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<KAS,Tb#2>"
+        },
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "replace",
+          "edge": "B->S",
+          "L": "<KBS,A|<KAS,Tb#2>>"
+        },
+        {
+          "sid": 1,
+          "step": 5,
+          "kind": "replace",
+          "edge": "S->B",
+          "L": "<KBS,Tb#2>"
+        }
+      ]
+    },
+    {
+      "name": "replay_server_response_tb1_into_sid2",
+      "overrides": [
+        {
+          "sid": 2,
+          "step": 5,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "all_intruder_steps_sid1",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "A"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "Tb#1"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KAS,Tb#1>"
+        },
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "intruder",
+          "edge": "I->S",
+          "L": "<KBS,A|<KAS,Tb#1>>"
+        },
+        {
+          "sid": 1,
+          "step": 5,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,Tb#1>"
+        }
+      ]
+    }
+  ]
+}

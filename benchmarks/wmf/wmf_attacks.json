@@ -1,0 +1,194 @@
+{
+  "runs": [
+    {
+      "name": "honest",
+      "overrides": []
+    },
+    {
+      "name": "replay_step2_from_sid1_into_sid2",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "S->I",
+          "L": "<KBS,Ts#1|A|KAB#1>"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,Ts#1|A|KAB#1>"
+        }
+      ]
+    },
+    {
+      "name": "replay_step1_from_sid1_into_sid2",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "A|<KAS,Ta#1|B|KAB#1>"
+        },
+        {
+          "sid": 2,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->S",
+          "L": "A|<KAS,Ta#1|B|KAB#1>"
+        }
+      ]
+    },
+    {
+      "name": "mitm_oracle_reuse_A_ciphertext",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "A|<KAS,Ta#2|B|KAB#2>"
+        },
+        {
+          "sid": 2,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->S",
+          "L": "A|<KAS,Ta#2|B|KAB#2>"
+        }
+      ]
+    },
+    {
+      "name": "impersonate_A_to_S_replay_step1",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->S",
+          "L": "A|<KAS,Ta#1|B|KAB#1>"
+        }
+      ]
+    },
+    {
+      "name": "compromise_KAS_inject_fresh_KAB",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->S",
+          "L": "A|<KAS,Ta#1|B|KABi#1>"
+        }
+      ]
+    },
+    {
+      "name": "compromise_KBS_fake_S_to_B",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,Ts#1|A|KAB#1>"
+        }
+      ]
+    },
+    {
+      "name": "mismatch_S_to_I_then_reply",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "S->I",
+          "L": "<KBI,Ts#1|A|KAB#1>"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBI,Ts#1|A|KAB#1>"
+        }
+      ]
+    },
+    {
+      "name": "typeflaw_Ta_is_A",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->S",
+          "L": "A|<KAS,A|B|KAB#1>"
+        }
+      ]
+    },
+    {
+      "name": "typeflaw_KAB_is_B",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->S",
+          "L": "A|<KAS,Ta#1|B|B>"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "S->B",
+          "L": "<KBS,Ts#1|A|B>"
+        }
+      ]
+    },
+    {
+      "name": "stale_Ta_replay",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->S",
+          "L": "A|<KAS,Ta#0|B|KAB#1>"
+        }
+      ]
+    },
+    {
+      "name": "stale_Ts_replay",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "S->B",
+          "L": "<KBS,Ts#0|A|KAB#1>"
+        }
+      ]
+    },
+    {
+      "name": "all_intruder_steps_sid1",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->S",
+          "L": "A|<KAS,Ta#1|B|KAB#1>"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,Ts#1|A|KAB#1>"
+        }
+      ]
+    }
+  ]
+}

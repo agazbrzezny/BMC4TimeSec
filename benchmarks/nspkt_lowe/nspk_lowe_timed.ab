@@ -1,0 +1,10 @@
+// Timed Lowe's modification of Needham–Schroeder Public-Key Protocol (NSPK-Lowe, timed)
+// Ta, Tb are (timed) nonces/tickets.
+//
+// 1. A -> B : {Ta, A}Kb
+// 2. B -> A : {Ta, Tb, B}Ka
+// 3. A -> B : {Tb}Kb
+
+1. A -> B : {Ta, A}Kb
+2. B -> A : {Ta, Tb, B}Ka
+3. A -> B : {Tb}Kb

@@ -1,0 +1,7 @@
+// Yahalom Protocol (symmetric-key) — timed variant-ready
+// Standard message pattern (with nonces Ta, Tb). You may treat Ta/Tb as tickets with lifetimes LF(Ta), LF(Tb).
+
+1. A -> B : A, Ta
+2. B -> S : B, {A, Ta, Tb}KBS
+3. S -> A : {B, KAB, Ta, Tb}KAS, {A, KAB}KBS
+4. A -> B : {A, KAB}KBS, {Tb}KAB

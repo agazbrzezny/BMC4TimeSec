@@ -1,0 +1,128 @@
+:root{
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --text:#0f172a;
+  --muted:#475569;
+  --border:rgba(15,23,42,0.12);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial}
+.app{min-height:100vh}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);background:var(--card)}
+.brand{font-weight:800}
+.hint{color:var(--muted);font-size:13px}
+.main{display:grid;grid-template-columns:520px 1fr;gap:14px;padding:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px}
+h3{margin:0 0 10px 0}
+.row{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+label{font-size:13px;color:var(--muted)}
+input,select{border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:14px}
+button{border:1px solid rgba(37,99,235,0.30);background:rgba(37,99,235,0.10);border-radius:12px;padding:10px 12px;cursor:pointer}
+button:hover{background:rgba(37,99,235,0.14)}
+.small{font-size:12px}
+.muted{color:var(--muted)}
+.pipeList{display:flex;flex-direction:column;gap:12px}
+.pipeItem{border:1px solid var(--border);border-radius:14px;padding:12px}
+.btnrow{display:flex;gap:10px;align-items:center}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);font-size:12px}
+.pill.queued{background:rgba(148,163,184,0.18)}
+.pill.running{background:rgba(234,179,8,0.14)}
+.pill.done{background:rgba(16,185,129,0.14)}
+.pill.failed{background:rgba(239,68,68,0.12)}
+.btnlink{display:inline-block;text-decoration:none;background:rgba(37,99,235,0.10);border:1px solid rgba(37,99,235,0.30);color:var(--text);border-radius:12px;padding:10px 12px}
+.btnlink:hover{background:rgba(37,99,235,0.14)}
+.nextBtn{background:rgba(16,185,129,0.10);border:1px solid rgba(16,185,129,0.30)}
+.nextBtn:hover{background:rgba(16,185,129,0.14)}
+.pipeLog,.previewBox{background:#0b1220;color:#e5e7eb;border-radius:12px;padding:10px;max-height:260px;overflow:auto;margin-top:10px;white-space:pre-wrap}
+.headerline{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px}
+
+/* Witness preview panel */
+.witnessCard{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:10px}
+.wControls{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.wControls button{padding:8px 10px}
+.wMeta{margin-top:8px;line-height:1.35}
+.wMode{margin-top:8px}
+.wSplit{display:grid;grid-template-columns:220px 1fr;gap:10px;margin-top:10px;align-items:stretch}
+.wAutoList{border:1px solid var(--border);border-radius:12px;padding:10px;max-height:520px;overflow:auto;background:rgba(15,23,42,0.02)}
+.wAutoItem{display:flex;gap:8px;align-items:center;margin:6px 0}
+.wGraphWrap{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff;position: relative}
+.cy{width:100%;height:520px}
+.timing-card{
+
+  width:360px;
+  max-height:260px;
+  overflow:hidden;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:0 10px 25px rgba(0,0,0,.08);
+  padding:10px 12px;
+  z-index:9999;
+}
+
+.timing-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:8px;
+}
+
+.timing-title{ font-weight:800; }
+.timing-hint{ font-size:12px; color:var(--muted); }
+
+.timing-body{
+  max-height:210px;
+  overflow:auto;
+}
+
+.timing-section{
+  margin-top:8px;
+  font-size:12px;
+  font-weight:800;
+  color:#334155;
+}
+
+.timing-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+}
+
+.timing-table th, .timing-table td{
+  padding:4px 6px;
+  border-bottom:1px solid rgba(15,23,42,0.06);
+  text-align:right;
+  white-space:nowrap;
+}
+
+.timing-table th:first-child,
+.timing-table td:first-child{ text-align:left; }
+
+.timing-row-active{
+  background:rgba(239,68,68,0.14);
+  font-weight:800;
+}
+.timing-card.below-witness{
+  position: relative;   /* zamiast absolute */
+  width: 100%;
+  max-width: 520px;
+  margin: 12px auto 0 auto;  /* odstęp od grafu */
+}
+
+.row-inline{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.engine-sel{
+  height:44px;                 /* dopasuj do wysokości Twoich buttonów */
+  padding:0 12px;
+  border-radius:12px;
+  border:1px solid rgba(37,99,235,0.30);
+  background:rgba(37,99,235,0.10);
+  font-size:14px;
+  font-weight:600;
+  color:#0f172a;
+}

@@ -1,0 +1,264 @@
+{
+  "meta": {
+    "protocol": "Andrew_Secure_RPC_Timed",
+    "aka": [
+      "Andrew protocol",
+      "Andrew Secure RPC"
+    ],
+    "version": "4-step symmetric-key key-transport; timed checks optional",
+    "alice_bob_input_checked": {
+      "provided": [
+        "1. A->B: A, {Ta}Kab",
+        "2. B->A: {Ta, Tb}Kab   (as provided)",
+        "3. A->B: {Tb}Kab       (as provided)",
+        "4. B->A: {K'ab, T'b}Kab (as provided)"
+      ],
+      "issue_found": [
+        "Standard Andrew Secure RPC uses successor checks: message 2 contains (Ta+1, Tb) and message 3 contains (Tb+1).",
+        "The last field in message 4 is typically a fresh nonce N'b (future handshake), not necessarily a timestamp; primes were renamed to KabP, NbP."
+      ],
+      "corrected": [
+        "1. A->B: A, {Ta}Kab",
+        "2. B->A: {succTa, Tb}Kab",
+        "3. A->B: {succTb}Kab",
+        "4. B->A: {KabP, NbP}Kab"
+      ],
+      "notes": [
+        "If you omit successor/type checks, the protocol is vulnerable to classic type-flaw style confusions (see the included typeflaw run).",
+        "A BAN-modified variant additionally includes Ta inside message 4 (e.g., {KabP,NbP,Ta}Kab) to prevent such confusions.",
+        "Timed option: you can model lifetimes LF(Ta), LF(Tb), LF(NbP) and reject stale tickets."
+      ]
+    },
+    "messages": [
+      "1. A->B: A, {Ta}Kab",
+      "2. B->A: {succTa, Tb}Kab",
+      "3. A->B: {succTb}Kab",
+      "4. B->A: {KabP, NbP}Kab"
+    ],
+    "notation": {
+      "concat": "|",
+      "encrypt": "<K, ...>",
+      "examples": {
+        "{Ta}Kab": "<Kab,Ta>",
+        "{succTa,Tb}Kab": "<Kab,succTa|Tb>",
+        "{succTb}Kab": "<Kab,succTb>",
+        "{KabP,NbP}Kab": "<Kab,KabP|NbP>"
+      }
+    },
+    "hints": [
+      "Timed option: --ticket-lifetimes Ta:<LF>;Tb:<LF>;NbP:<LF> (optional).",
+      "Runs with tc_extra stale(Ta#k)/stale(Tb#k)/stale(NbP#k) require tc_extra support in the .protoc generator."
+    ]
+  },
+  "runs": [
+    {
+      "name": "honest",
+      "overrides": []
+    },
+    {
+      "name": "replay_msg4_sid1_to_sid2_no_freshness_check",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "<Kab,KabP#1|NbP#1>"
+        },
+        {
+          "sid": 2,
+          "step": 4,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<Kab,KabP#1|NbP#1>"
+        }
+      ]
+    },
+    {
+      "name": "replay_msg4_stale_NbP_should_fail",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "<Kab,KabP#1|NbP#1>"
+        },
+        {
+          "sid": 2,
+          "step": 4,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<Kab,KabP#1|NbP#1>",
+          "tc_extra": "stale(NbP#1)"
+        }
+      ]
+    },
+    {
+      "name": "typeflaw_replay_msg2_as_msg4_to_A",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "<Kab,succTa#1|Tb#1>"
+        },
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<Kab,succTa#1|Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "replay_msg2_sid1_to_sid2_requires_Ta_reuse",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "<Kab,succTa#1|Tb#1>"
+        },
+        {
+          "sid": 2,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "A|<Kab,Ta#1>"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<Kab,succTa#1|Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "replay_msg3_sid1_to_sid2_requires_Tb_reuse",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "<Kab,succTb#1>"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->A",
+          "L": "<Kab,succTa#2|Tb#1>"
+        },
+        {
+          "sid": 2,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<Kab,succTb#1>"
+        }
+      ]
+    },
+    {
+      "name": "mitm_capture_msg4_B_to_A",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "replace",
+          "edge": "B->I",
+          "L": "<Kab,KabP#1|NbP#1>"
+        }
+      ]
+    },
+    {
+      "name": "compromise_Kab_forge_msg2_to_A",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<Kab,succTa#1|Tb#1>"
+        }
+      ]
+    },
+    {
+      "name": "compromise_Kab_forge_msg4_to_A_with_attacker_key",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<Kab,KabI#1|NbP#1>"
+        }
+      ]
+    },
+    {
+      "name": "stale_Ta_should_fail_in_msg2",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "B->A",
+          "L": "<Kab,succTa#1|Tb#1>",
+          "tc_extra": "stale(Ta#1)"
+        }
+      ]
+    },
+    {
+      "name": "stale_Tb_should_fail_in_msg3",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<Kab,succTb#1>",
+          "tc_extra": "stale(Tb#1)"
+        }
+      ]
+    },
+    {
+      "name": "all_intruder_steps_sid1",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "A|<Kab,Ta#1>"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<Kab,succTa#1|Tb#1>"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<Kab,succTb#1>"
+        },
+        {
+          "sid": 1,
+          "step": 4,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<Kab,KabP#1|NbP#1>"
+        }
+      ]
+    }
+  ]
+}

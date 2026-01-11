@@ -1,0 +1,19 @@
+// Timed version of Woo and Lam Pi 3 Protocol (WLPi3, timed-ready)
+// Normalized keys: KAS, KBS
+//
+// 1. A -> B : A
+// 2. B -> A : Tb
+// 3. A -> B : {A, Tb}KAS
+// 4. B -> S : {A, {Tb}KAS}KBS
+// 5. S -> B : {A, Tb}KBS
+//
+// Notes:
+// - KAS is long-term key between A and S.
+// - KBS is long-term key between B and S.
+// - Tb is B's nonce/ticket; timed model can attach lifetime LF(Tb).
+
+1. A -> B : A
+2. B -> A : Tb
+3. A -> B : {A, Tb}KAS
+4. B -> S : {A, {Tb}KAS}KBS
+5. S -> B : {A, Tb}KBS

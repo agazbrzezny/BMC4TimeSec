@@ -1,0 +1,224 @@
+{
+  "meta": {
+    "protocol": "DenningSacco",
+    "version": "3-step KDC with server timestamp (timed)",
+    "alice_bob_input_checked": {
+      "provided": [
+        "1. A->S: A, B",
+        "2. S->A: {B, Kab, Ts, {Kab, A, Ts}Kbs}Kas",
+        "3. A->B: {Kab, A, Ts}Kbs"
+      ],
+      "normalized": [
+        "1. A->S: A|B",
+        "2. S->A: {B,KAB,Ts,{KAB,A,Ts}KBS}KAS",
+        "3. A->B: {KAB,A,Ts}KBS"
+      ],
+      "notes": [
+        "This matches the standard Denning\u2013Sacco/KDC pattern: server sends A a session key KAB and a ticket for B, both bound to a server timestamp Ts.",
+        "For the timed model, Ts should be treated as a ticket/timestamp with a lifetime LF(Ts) checked by B when accepting/using the ticket."
+      ]
+    },
+    "messages": [
+      "1. A->S: A, B",
+      "2. S->A: {B, KAB, Ts, {KAB, A, Ts}KBS}KAS",
+      "3. A->B: {KAB, A, Ts}KBS"
+    ],
+    "notation": {
+      "concat": "|",
+      "encrypt": "<Kxy, ...>",
+      "examples": {
+        "{KAB,A,Ts}KBS": "<KBS,KAB|A|Ts>",
+        "{B,KAB,Ts,{KAB,A,Ts}KBS}KAS": "<KAS,B|KAB|Ts|<KBS,KAB|A|Ts>>"
+      }
+    },
+    "hints": [
+      "Use --session-vars KAB when generating .protoc so KAB is instantiated per sid.",
+      "If you model freshness of Ts, include --ticket-lifetimes Ts:<LF> and add standard tc checks on the receiver side (typically B).",
+      "Runs with tc_extra stale(Ts#k) require tc_extra support in the .protoc generator (stale -> age(Ts) >= LF(Ts)+1)."
+    ]
+  },
+  "runs": [
+    {
+      "name": "honest",
+      "overrides": []
+    },
+    {
+      "name": "replay_ticket_step3_sid1_to_sid2",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "<KBS,KAB#1|A|Ts#1>"
+        },
+        {
+          "sid": 2,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,KAB#1|A|Ts#1>"
+        }
+      ]
+    },
+    {
+      "name": "replay_ticket_step3_stale_Ts_should_fail",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->I",
+          "L": "<KBS,KAB#1|A|Ts#1>"
+        },
+        {
+          "sid": 2,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,KAB#1|A|Ts#1>",
+          "tc_extra": "stale(Ts#1)"
+        }
+      ]
+    },
+    {
+      "name": "replay_server_reply_step2_to_A_sid2_then_forward_ticket",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "S->I",
+          "L": "<KAS,B|KAB#1|Ts#1|<KBS,KAB#1|A|Ts#1>>"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<KAS,B|KAB#1|Ts#1|<KBS,KAB#1|A|Ts#1>>"
+        },
+        {
+          "sid": 2,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<KBS,KAB#1|A|Ts#1>"
+        }
+      ]
+    },
+    {
+      "name": "replay_server_reply_step2_stale_Ts_should_fail",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "replace",
+          "edge": "S->I",
+          "L": "<KAS,B|KAB#1|Ts#1|<KBS,KAB#1|A|Ts#1>>"
+        },
+        {
+          "sid": 2,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<KAS,B|KAB#1|Ts#1|<KBS,KAB#1|A|Ts#1>>",
+          "tc_extra": "stale(Ts#1)"
+        },
+        {
+          "sid": 2,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<KBS,KAB#1|A|Ts#1>"
+        }
+      ]
+    },
+    {
+      "name": "mismatch_peer_B_to_I_in_step1",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "replace",
+          "edge": "A->S",
+          "L": "A|I"
+        }
+      ]
+    },
+    {
+      "name": "compromise_KAS_forge_server_reply_to_A_with_attacker_KAB",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<KAS,B|KABi#1|Ts#1|<KBS,KABi#1|A|Ts#1>>"
+        }
+      ]
+    },
+    {
+      "name": "compromise_KBS_forge_ticket_to_B",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,KAB#1|A|Ts#1>"
+        }
+      ]
+    },
+    {
+      "name": "typeflaw_Ts_is_A_in_ticket",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<KBS,KAB#1|A|A>"
+        }
+      ]
+    },
+    {
+      "name": "typeflaw_KAB_is_B_in_ticket",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "replace",
+          "edge": "A->B",
+          "L": "<KBS,B|A|Ts#1>"
+        }
+      ]
+    },
+    {
+      "name": "all_intruder_steps_sid1",
+      "overrides": [
+        {
+          "sid": 1,
+          "step": 1,
+          "kind": "intruder",
+          "edge": "I->S",
+          "L": "A|B"
+        },
+        {
+          "sid": 1,
+          "step": 2,
+          "kind": "intruder",
+          "edge": "I->A",
+          "L": "<KAS,B|KAB#1|Ts#1|<KBS,KAB#1|A|Ts#1>>"
+        },
+        {
+          "sid": 1,
+          "step": 3,
+          "kind": "intruder",
+          "edge": "I->B",
+          "L": "<KBS,KAB#1|A|Ts#1>"
+        }
+      ]
+    }
+  ]
+}

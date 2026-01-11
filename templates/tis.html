@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Show TIS</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+  <!-- Load local Cytoscape first; fallback to CDN if missing -->
+  <script>
+    window.__cySource = "local";
+  </script>
+  <script src="{{ url_for('static', filename='cytoscape.min.js') }}"
+          onerror="window.__cySource='cdn'; var s=document.createElement('script'); s.src='https://unpkg.com/cytoscape@3.29.0/dist/cytoscape.min.js'; document.head.appendChild(s);">
+  </script>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">TIS Viewer</div>
+    <div class="hint">{{ tis_path }}</div>
+
+    <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+      <span class="pill queued" id="cyStatus">Cytoscape: …</span>
+      <button type="button" id="fitBtn">Fit</button>
+      <button type="button" id="freeBtn">Free layout</button>
+      <a class="btnlink" href="{{ url_for('index') }}">Back</a>
+    </div>
+  </div>
+
+  <div class="card" style="margin:14px;">
+    <div class="small muted">
+      Drag states to rearrange. Mouse wheel to zoom. Pan by dragging background.
+      <br/>
+      Edge labels show: <b>action</b> (first line), then <b>time guards</b> and <b>resets</b> on separate lines.
+    </div>
+  </div>
+
+  <div id="cy" style="height: calc(100vh - 140px); margin: 0 14px 14px 14px; background: #ffffff; border: 1px solid var(--border); border-radius: 16px;"></div>
+</div>
+
+<script>
+async function fetchJson(url){
+  const res = await fetch(url);
+  return await res.json();
+}
+
+function setCyStatus(text, cls){
+  const el = document.getElementById("cyStatus");
+  if(!el) return;
+  el.textContent = text;
+  el.className = "pill " + (cls || "queued");
+}
+
+// Wait until cytoscape is actually available (local or CDN)
+async function waitForCytoscape(timeoutMs=8000){
+  const t0 = Date.now();
+  while(Date.now() - t0 < timeoutMs){
+    if(window.cytoscape) return true;
+    await new Promise(r=>setTimeout(r, 80));
+  }
+  return false;
+}
+
+(async ()=>{
+  const okCy = await waitForCytoscape();
+  if(!okCy){
+    setCyStatus("Cytoscape: missing", "failed");
+    document.getElementById("cy").innerHTML =
+      "<div style='padding:16px;color:#334155'>Cytoscape failed to load. Place a real <code>static/cytoscape.min.js</code> file or allow CDN access.</div>";
+    return;
+  }
+  setCyStatus("Cytoscape: " + (window.__cySource || "local"), "done");
+
+  const data = await fetchJson(`/api/tis_graph/{{ job_id }}`);
+  if(!data.ok){
+    document.getElementById("cy").innerHTML =
+      "<div style='padding:16px;color:#334155'>Failed to load TIS graph: " + (data.error||"") + "</div>";
+    return;
+  }
+
+  const cy = cytoscape({
+    container: document.getElementById('cy'),
+    elements: data.elements,
+    style: [
+      { selector: 'node', style: {
+          'label': 'data(label)',
+          'text-valign': 'center',
+          'text-halign': 'center',
+          'font-size': 12,
+          'background-color': '#e2e8f0',
+          'border-width': 1,
+          'border-color': '#94a3b8',
+          'width': 28,
+          'height': 28
+      }},
+      { selector: '$node > node', style: {
+          'background-opacity': 0.03,
+          'border-width': 1,
+          'border-color': '#cbd5e1',
+          'label': 'data(label)',
+          'text-valign': 'top',
+          'text-halign': 'center',
+          'font-size': 12,
+          'padding': 14,
+          'text-margin-y': -8
+      }},
+      { selector: 'edge', style: {
+          'curve-style': 'bezier',
+          'target-arrow-shape': 'triangle',
+          'label': 'data(label)',
+          'font-size': 10,
+          'text-wrap': 'wrap',
+          'text-max-width': 240,
+          'text-background-opacity': 1,
+          'text-background-color': '#ffffff',
+          'text-background-padding': 2,
+          'line-color': '#64748b',
+          'text-margin-y': -10,
+          'target-arrow-color': '#64748b'
+      }},
+    ],
+    layout: { name: 'preset' },
+    wheelSensitivity: 0.2
+  });
+
+  // Apply preset positions from server
+  cy.nodes().forEach(n=>{
+    const p = data.positions && data.positions[n.id()];
+    if(p){ n.position(p); }
+  });
+
+  cy.fit();
+
+  document.getElementById("fitBtn").addEventListener("click", ()=> cy.fit());
+  document.getElementById("freeBtn").addEventListener("click", ()=> cy.layout({name:"cose", animate:false, padding:10}).run());
+})();
+</script>
+</body>
+</html>

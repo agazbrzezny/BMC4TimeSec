@@ -1,0 +1,4 @@
+1. A->S : A, B, Ta
+2. S->B : {A,B,Ta,KAB}KAS | {A,B,Ta,KAB}KBS
+3. B->A : {A,B,Ta,KAB}KAS | {Ta}KAB | Tb
+4. A->B : {Tb}KAB
