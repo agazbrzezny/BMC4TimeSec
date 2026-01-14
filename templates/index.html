@@ -118,10 +118,10 @@
                   <span class="small muted">Active: <code>{{ outs.get('selected_scenario','') }}</code> → <code>{{ outs.get('selected_efo').split('/')[-1] }}</code></span>
                 <div class="row-inline">
                 <a class="btnlink" href="/pipeline/download/{{ jid }}/selected_efo">Download active .efo</a>
-                  <select id="engineSel" class="engine-sel" aria-label="Solver">
-    <option value="tis" selected>SMT-BMC4TIS</option>
-    <option value="tiis">SMT-BMC4TIIS</option>
-  </select>
+                  <select id="engineSel-{{ jid }}" class="engine-sel" aria-label="Engine" name="engine" form="bmcForm-{{ jid }}">
+                    <option value="tis" selected>SMT-BMC4TIS</option>
+                    <option value="tiis">SMT-BMC4TIIS</option>
+                  </select>
 </div>
                 {% endif %}
               </form>

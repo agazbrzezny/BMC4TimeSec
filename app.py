@@ -27,8 +27,10 @@ GEN_EF = os.path.join(TOOLS_DIR, "gen_ef_formulas.py")
 
 # BMC + witness (kept as your tools expect)
 SMTREACH4TIS = os.path.join(TOOLS_DIR, "smtreach4tis")
+SMTREACH4TIIS = os.path.join(TOOLS_DIR, "smtreach4tiis")
 RUN_SMTREACH_AND_WITNESS = os.path.join(TOOLS_DIR, "run_smtreach_and_witness.py")
 GEN_WIT = os.path.join(TOOLS_DIR, "gen_wit_z3.py")
+GEN_WIT_TIIS = os.path.join(TOOLS_DIR, "gen_wit_z3_tiis.py")
 
 os.makedirs(JOBS_DIR, exist_ok=True)
 
@@ -606,7 +608,7 @@ def _job_to_view(job: PipelineJob) -> Dict[str, Any]:
         "stage_index": job.stage_index,
         "stages_len": len(job.stages),
         "workdir": job.workdir,
-        "output_dir": job.output_dir,
+        "output_dir": job.workdir,
         "outputs": job.outputs,
         "error": job.error,
     }
@@ -741,6 +743,7 @@ def pipeline_start():
 
     job_id = uuid.uuid4().hex[:10]
     workdir = os.path.join(JOBS_DIR, job_id)
+    out_dir = os.path.join(JOBS_DIR, job_id)
     os.makedirs(workdir, exist_ok=True)
     log_path = os.path.join(workdir, "job.log")
 
@@ -750,8 +753,7 @@ def pipeline_start():
     js_f.save(json_path)
 
     model_base = os.path.splitext(os.path.basename(ab_path))[0]
-    out_dir = output_dir or workdir
-    protoc_path = os.path.join(out_dir, f"{model_base}.protoc")
+    protoc_path = os.path.join(workdir, f"{model_base}.protoc")
 
     cmd = ["python", AB_TO_PROTOC, ab_path, "--interpretations", json_path, "--k", k, "--output", protoc_path]
     if delays:
@@ -798,11 +800,10 @@ def pipeline_gen_tis(job_id: str):
         abort(400, "Missing .protoc output")
 
     model_base = os.path.splitext(os.path.basename(protoc_path))[0]
-    out_dir = job.output_dir or job.workdir
-    os.makedirs(out_dir, exist_ok=True)
-
-    nta_path = os.path.join(out_dir, f"{model_base}.nta")
-    tis_path = os.path.join(out_dir, f"{model_base}.tis")
+    workdir = os.path.join(JOBS_DIR, job_id)
+    out_dir = os.path.join(JOBS_DIR, job_id)
+    nta_path = os.path.join(workdir, f"{model_base}.nta")
+    tis_path = os.path.join(workdir, f"{model_base}.tis")
 
     # Append stages and run in background (single lock ensures no overlap)
     job.stages = job.stages + [
@@ -828,7 +829,8 @@ def pipeline_gen_ef(job_id: str):
         abort(400, "Missing .nta (generate TIS first)")
 
     model_base = os.path.splitext(os.path.basename(nta_path))[0]
-    out_dir = job.output_dir or job.workdir
+    workdir = os.path.join(JOBS_DIR, job_id)
+    out_dir = os.path.join(JOBS_DIR, job_id)
     os.makedirs(out_dir, exist_ok=True)
     efo_path = os.path.join(out_dir, f"{model_base}.efo")
 
@@ -880,7 +882,8 @@ def pipeline_select_ef(job_id: str):
     else:
         model_base = os.path.splitext(os.path.basename(efo))[0]
 
-    out_dir = job.output_dir or job.workdir
+    workdir = os.path.join(JOBS_DIR, job_id)
+    out_dir = os.path.join(JOBS_DIR, job_id)
     selected_path = _write_selected_efo(model_base, scenario, block["formula"], out_dir)
     job.outputs["selected_efo"] = selected_path
     job.outputs["selected_scenario"] = scenario
@@ -930,62 +933,6 @@ def pipeline_download(job_id: str, kind: str):
     return send_file(path, as_attachment=True, download_name=os.path.basename(path))
 
 
-    blocks = re.findall(
-        r"^\s*automaton\s*\n\s*#(\d+)\s*\n(.*?)^\s*end\s*$\n^\s*#-+\s*$",
-        txt,
-        flags=re.DOTALL | re.MULTILINE,
-    )
-
-    autos = []
-    for aid, body in blocks:
-        locs = []
-        for lm in re.finditer(r"^\s*location\s+(\S+)\s*$\n^\s*end\s*$", body, flags=re.MULTILINE):
-            lid = lm.group(1)
-            locs.append({"id": lid})
-
-        trans = []
-        for tm in re.finditer(r"^\s*transition\s+(\S+)\s+(\S+)\s+(\S+)\s*$([\s\S]*?)^\s*end\s*$", body, flags=re.MULTILINE):
-            src, dst, lab = tm.group(1), tm.group(2), tm.group(3)
-            tail = tm.group(4) or ""
-            guard = ""
-            reset = ""
-            g = re.search(r"^\s*guard\s+([^\n]+)$", tail, flags=re.MULTILINE)
-            if g:
-                guard = g.group(1).strip()
-            r = re.search(r"^\s*reset\s+([^\n]+)$", tail, flags=re.MULTILINE)
-            if r:
-                reset = r.group(1).strip()
-            trans.append({"src": src, "dst": dst, "label": lab, "guard": guard, "reset": reset})
-
-        autos.append({"id": aid, "locations": locs, "transitions": trans})
-    return {"automata": autos}
-
-    for ai, a in enumerate(autos):
-        aid = str(a.get("id"))
-        parent_id = f"p_{aid}"
-        els.append({"data": {"id": parent_id, "label": f"Automaton #{aid}"}})
-
-        prefix = f"a{aid}"
-        for li, loc in enumerate(a.get("locations", [])):
-            nid = f"{prefix}_n_{loc['id']}"
-            els.append({
-                "data": {"id": nid, "label": str(loc["id"]), "parent": parent_id},
-                "position": {"x": ai * 360 + 60, "y": li * 90 + 60},
-            })
-
-        for ei, tr in enumerate(a.get("transitions", [])):
-            src = f"{prefix}_n_{tr['src']}"
-            dst = f"{prefix}_n_{tr['dst']}"
-            parts = [str(tr.get("label",""))]
-            if tr.get("guard"):
-                parts.append(tr["guard"])
-            if tr.get("reset"):
-                parts.append("reset " + tr["reset"])
-            lab = "\n".join([p for p in parts if p])
-            els.append({
-                "data": {"id": f"{prefix}_e_{ei}", "source": src, "target": dst, "label": lab},
-            })
-    return els
 
 def parse_tis_network(path: str) -> Dict[str, Any]:
     """Robust parser for .tis produced by nta_to_tis_with_comments.py.
@@ -1205,7 +1152,8 @@ def api_witness_status(job_id: str):
     job = PIPELINE_JOBS.get(job_id)
     if not job:
         return jsonify({"ok": False, "error": "job not found"}), 404
-    out_dir = job.output_dir or job.workdir
+    workdir = os.path.join(JOBS_DIR, job_id)
+    out_dir = os.path.join(JOBS_DIR, job_id)
     out_dir_p = Path(out_dir)
     matches = list(out_dir_p.glob(f"*-k*.wit"))
     if len(matches) == 1:
@@ -1237,7 +1185,8 @@ def api_witness_graph(job_id: str):
     if not job:
         return jsonify({"ok": False, "error": "job not found"}), 404
 
-    out_dir = job.output_dir or job.workdir
+    workdir = os.path.join(JOBS_DIR, job_id)
+    out_dir = os.path.join(JOBS_DIR, job_id)
     out_dir_p = Path(out_dir)
     matches = list(out_dir_p.glob(f"*-k*.wit"))
     job.outputs["wit"] = os.path.join(out_dir, str(matches[0]))
@@ -1320,13 +1269,20 @@ def pipeline_run_bmc(job_id: str):
     if not job:
         abort(404)
 
-    # Your preferred flow: smtreach4tis -> z3 -> gen_wit (inside tools/run_smtreach_and_witness.py)
-    if not os.path.exists(SMTREACH4TIS):
-        abort(400, "Missing tool: tools/smtreach4tis")
+    engine = (request.form.get("engine", "") or "").strip().lower() or "tis"
+    if engine not in {"tis", "tiis"}:
+        abort(400, "Invalid engine (expected: tis or tiis)")
+
+    # Your preferred flow: smtreach -> z3 -> gen_wit (inside tools/run_smtreach_and_witness.py)
+    smtreach_bin = SMTREACH4TIS if engine == "tis" else SMTREACH4TIIS
+    gen_wit_py = GEN_WIT if engine == "tis" else GEN_WIT_TIIS
+
+    if not os.path.exists(smtreach_bin):
+        abort(400, f"Missing tool: {os.path.relpath(smtreach_bin, APP_DIR)}")
     if not os.path.exists(RUN_SMTREACH_AND_WITNESS):
         abort(400, "Missing tool: tools/run_smtreach_and_witness.py")
-    if not os.path.exists(GEN_WIT):
-        abort(400, "Missing tool: tools/gen_wit_z3.py")
+    if not os.path.exists(gen_wit_py):
+        abort(400, f"Missing tool: {os.path.relpath(gen_wit_py, APP_DIR)}")
 
     tis_path = job.outputs.get("tis")
     sel_efo = job.outputs.get("selected_efo")
@@ -1345,7 +1301,7 @@ def pipeline_run_bmc(job_id: str):
 
     z3_bin = (request.form.get("z3_bin", "") or "").strip() or "z3"
 
-    out_dir = os.path.abspath(job.output_dir or job.workdir)
+    out_dir = os.path.abspath(job.workdir)
     os.makedirs(out_dir, exist_ok=True)
 
     # Performance .dat files (as in the older bmc_alg.py).
@@ -1354,9 +1310,9 @@ def pipeline_run_bmc(job_id: str):
     attack = efo_base
     if efo_base.startswith(tis_base + "-"):
         attack = efo_base[len(tis_base) + 1:]
-    job.outputs["dat_reach"] = os.path.join(out_dir, f"{tis_base}_{attack}_tis_bmc.dat")
-    job.outputs["dat_z3"] = os.path.join(out_dir, f"{tis_base}_{attack}_tis_z3.dat")
-    job.outputs["dat_total"] = os.path.join(out_dir, f"{tis_base}_{attack}_tis_total.dat")
+    job.outputs["dat_reach"] = os.path.join(out_dir, f"{tis_base}_{attack}_{engine}_bmc.dat")
+    job.outputs["dat_z3"] = os.path.join(out_dir, f"{tis_base}_{attack}_{engine}_z3.dat")
+    job.outputs["dat_total"] = os.path.join(out_dir, f"{tis_base}_{attack}_{engine}_total.dat")
 
     # Expected artifacts (written by run_smtreach_and_witness.py)
     job.outputs["smt"] = os.path.join(out_dir, f"{model_base}-k{steps}.smt")
@@ -1366,12 +1322,14 @@ def pipeline_run_bmc(job_id: str):
     cmd = [
         sys.executable,
         RUN_SMTREACH_AND_WITNESS,
+        "--engine",
+        engine,
         "--smtreach",
-        SMTREACH4TIS,
+        smtreach_bin,
         "--z3",
         z3_bin,
         "--gen_wit",
-        GEN_WIT,
+        gen_wit_py,
         "--out_dir",
         out_dir,
         "--model_base",
@@ -1441,7 +1399,7 @@ def api_timings(job_id: str):
     if not job:
         return jsonify({"ok": False, "error": "job not found"}), 404
 
-    out_dir = os.path.abspath(job.output_dir or job.workdir)
+    out_dir = os.path.abspath(job.workdir)
 
     # Najczęściej te pliki powstają w pipeline_run_bmc:
     # job.outputs["dat_z3"] = "..._tis_z3.dat"

@@ -139,6 +139,12 @@ def newest_matching(pattern, cwd):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--engine",
+        default="tis",
+        choices=["tis", "tiis"],
+        help="Which SMT-BMC backend is used (affects .dat naming only).",
+    )
     ap.add_argument("--smtreach", required=True)
     ap.add_argument("--z3", default="z3")
     ap.add_argument("--gen_wit", required=True)
@@ -162,9 +168,10 @@ def main():
     if efo_base.startswith(tis_base + "-"):
         attack = efo_base[len(tis_base) + 1:]
 
-    dat_reach = os.path.join(out_dir, f"{tis_base}_{attack}_tis_bmc.dat")
-    dat_z3 = os.path.join(out_dir, f"{tis_base}_{attack}_tis_z3.dat")
-    dat_total = os.path.join(out_dir, f"{tis_base}_{attack}_tis_total.dat")
+    tag = args.engine
+    dat_reach = os.path.join(out_dir, f"{tis_base}_{attack}_{tag}_bmc.dat")
+    dat_z3 = os.path.join(out_dir, f"{tis_base}_{attack}_{tag}_z3.dat")
+    dat_total = os.path.join(out_dir, f"{tis_base}_{attack}_{tag}_total.dat")
 
     if os.path.exists(dat_reach):
         os.remove(dat_reach)
@@ -255,6 +262,7 @@ def main():
 
         k += 2
     # Cleanup: lock files left by some solvers/toolchains.
+    '''
     for lck in glob.glob(os.path.join(out_dir, "*.lck")):
         try:
             os.remove(lck)
@@ -266,12 +274,13 @@ def main():
             os.remove(smt)
         except OSError:
             pass
+    
     for outfiles in glob.glob(os.path.join(out_dir, "*.out")):
         try:
             os.remove(outfiles)
         except OSError:
             pass
-
+    '''
     for timefiles in glob.glob(os.path.join(out_dir, "*.time")):
         try:
             os.remove(timefiles)
